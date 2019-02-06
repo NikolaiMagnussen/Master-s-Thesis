@@ -2,5 +2,6 @@
               [@@@ocaml.warning "-27-32-35-39"]
 
 type capability = [
-    `Unclassified | `Restricted | `Confidential | `Secret | `TopSecret
+    `None | `Unclassified | `Restricted | `Confidential | `Secret
+  | `TopSecret
 ]

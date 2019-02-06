@@ -6,6 +6,7 @@ type capability = Capability_t.capability
 let write_capability = (
   fun ob x ->
     match x with
+      | `None -> Bi_outbuf.add_string ob "<\"None\">"
       | `Unclassified -> Bi_outbuf.add_string ob "<\"Unclassified\">"
       | `Restricted -> Bi_outbuf.add_string ob "<\"Restricted\">"
       | `Confidential -> Bi_outbuf.add_string ob "<\"Confidential\">"
@@ -22,6 +23,10 @@ let read_capability = (
     match Yojson.Safe.start_any_variant p lb with
       | `Edgy_bracket -> (
           match Yojson.Safe.read_ident p lb with
+            | "None" ->
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_gt p lb;
+              `None
             | "Unclassified" ->
               Yojson.Safe.read_space p lb;
               Yojson.Safe.read_gt p lb;
@@ -47,6 +52,8 @@ let read_capability = (
         )
       | `Double_quote -> (
           match Yojson.Safe.finish_string p lb with
+            | "None" ->
+              `None
             | "Unclassified" ->
               `Unclassified
             | "Restricted" ->

@@ -1,4 +1,5 @@
 type capability = [
+    | None
     | Unclassified
     | Restricted
     | Confidential

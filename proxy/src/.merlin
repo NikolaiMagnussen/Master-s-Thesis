@@ -1,3 +1,5 @@
+S capability_j capability_t
+
 B _build/*
 
 PKG lwt lwt.unix cohttp cohttp-mirage mirage cohttp-lwt
