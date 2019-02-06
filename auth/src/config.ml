@@ -12,6 +12,8 @@ let main =
 let () =
   let packages = [
     package "uri";
+    package "biniou";
+    package "atdgen";
     package "mirage-conduit";
     package "cohttp-mirage";
     package ~ocamlfind:[] "mirage-solo5";

@@ -1,0 +1,7 @@
+type capability = [
+    | Unclassified
+    | Restricted
+    | Confidential
+    | Secret
+    | TopSecret
+]
