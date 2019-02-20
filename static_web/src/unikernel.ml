@@ -27,6 +27,7 @@ module Static (CON : Conduit_mirage.S) = struct
       *)
 
   let start conduit =
+    Handlers.register_to_loadbalancer conduit >>= fun () ->
     let callback _conn _req _body =
       S.respond_string ~status: `OK ~body: "Some static string" ()
     in
