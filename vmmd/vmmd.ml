@@ -13,5 +13,17 @@ let new_tap br =
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % tap % "master" % br) >>= fun () ->
   Ok tap
 
+(*
+let spawn kernel =
+  let tap = new_tap "br0" in
+  Bos.OS.Cmd.run Bos.Cmd.()
+*)
+
+(* Things we need to do:
+ * - Create new tap
+ * - Spawn unikernel and attach the network tap
+ * - Stop unikernel
+ * - Destroy tap device
+*)
 
 let () = ()
