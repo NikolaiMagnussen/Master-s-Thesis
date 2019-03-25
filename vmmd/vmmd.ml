@@ -46,23 +46,14 @@ let add_running name level pid =
   else
     Error (Rresult.R.msg "Did not find unikernel by that name")
 
-let add_unikernel name path level =
-  let unikernel = {
-    name = name;
-    path = path;
-    hvt = path;
-    default = level;
-  } in
-  Hashtbl.add unikernels name unikernel
-
 let del_unikernel name =
   Hashtbl.remove unikernels name
 
-let edit_unikernel name path level =
+let upsert_unikernel name path hvt level =
   let unikernel = {
     name = name;
     path = path;
-    hvt = path;
+    hvt = hvt;
     default = level;
   } in
   Hashtbl.replace unikernels name unikernel
@@ -108,27 +99,44 @@ let stop uuid =
     return ()
   )
 
-(* Things we need to do:
- * - Create new tap
- * - Spawn unikernel and attach the network tap
- * - Stop unikernel
- * - Destroy tap device
-*)
+(*
+ * Register should:
+   * Derive hvt path from path, and add it to the table
+   * For later development, we should copy the files into a directory
+ *)
+let register name path level = 
+  Fpath.of_string path  >|> fun path ->
+  let hvt_name = "solo5-hvt" in
+  let dir = Fpath.parent path in
+  let hvt = Fpath.(dir / hvt_name) in
+  upsert_unikernel name path hvt level;
+  Ok ()
 
+(** HANDLER FUNCTIONS - These should invoke all functionality **)
 let register_unikernel = post "/" begin fun req ->
     extract_body req >>=
-    fun (_name, _path, _level) ->
-    `String "kake er godt" |> respond'
+    fun (name, path, level) ->
+    let code = match register name path level with
+      | Error _ -> `Not_found
+      | Ok _ -> `OK
+    in
+    `String ("registered or updated unikernel " ^ name ^ " with default level: " ^ level) |> respond' ~code
   end
 
-let update_unikernel = put "/:name" begin fun req ->
+let update_unikernel = put "/" begin fun req ->
     extract_body req >>=
-    fun (name, _path, _level) ->
-    `String ("update unikernel " ^ name) |> respond'
+    fun (name, path, level) ->
+    let code = match register name path level with
+      | Error _ -> `Not_found
+      | Ok _ -> `OK
+    in
+    `String ("updated or registered unikernel " ^ name ^ " with default level: " ^ level) |> respond' ~code
   end
 
 let delete_unikernel = delete "/:name" begin fun req ->
-    `String ("delete unikernel " ^ param req "name") |> respond'
+    let name = param req "name" in
+    del_unikernel name;
+    `String ("deleted unikernel " ^ name) |> respond'
   end
 
 let list_unikernels = get "/" begin fun _req ->
@@ -169,6 +177,8 @@ let stop_unikernel = get "/stop/:id" begin fun req ->
     in
     `String ("stop unikernel " ^ id) |> respond' ~code
   end
+
+
 
 let () =
   App.empty
