@@ -16,6 +16,7 @@ let () =
     package "atdgen";
     package "mirage-conduit";
     package "cohttp-mirage";
+    package "scrypt-kdf";
     package ~ocamlfind:[] "mirage-solo5";
   ] in
   register ~packages "auth" [main $ conduit_direct (generic_stackv4 default_network)]
