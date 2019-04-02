@@ -5,3 +5,6 @@ key_gen.ml
 main.ml
 mirage-unikernel-auth-hvt.opam
 myocamlbuild.ml
+auth
+main.native
+mirage-unikernel-auth-unix.opam
