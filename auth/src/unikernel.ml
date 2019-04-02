@@ -91,7 +91,9 @@ module Auth (CON : Conduit_mirage.S) = struct
     | false -> unauthorized_login ()
     | true -> let uuid = add_token clearence in
       let headers = Header.init_with "capabilities" (Capability_j.string_of_capability clearence) in
-      let cookie = ("bearer", uuid) |> Cookie.Set_cookie_hdr.make ~path: "/" ~domain: "proxy.local" ~http_only: true |> Cookie.Set_cookie_hdr.serialize in
+      let cookie = ("bearer", uuid)
+                   |> Cookie.Set_cookie_hdr.make ~path: "/" ~domain: "proxy.local" ~http_only: true
+                   |> Cookie.Set_cookie_hdr.serialize in
       let headers = Header.add_list headers [cookie] in
       S.respond ~status: `OK ~headers ~body: `Empty ()
 
