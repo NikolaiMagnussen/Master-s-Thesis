@@ -39,14 +39,20 @@ module Auth (CON : Conduit_mirage.S) = struct
     let dk_len = Int32.of_int 32 in
     Scrypt_kdf.scrypt_kdf ~password ~salt ~n ~r ~p ~dk_len
 
-  let creds : (string, (capability * Cstruct.t)) Hashtbl.t =
+  let creds : (string, (capability * string * Cstruct.t)) Hashtbl.t =
     [
       ("dummy", "password123", "iY4cQt++", `Unclassified);
       ("admin", "password123", "cxEY9cFB", `TopSecret);
     ]
-    |> List.map (fun (user, pass, salt, clear) -> (user, (clear, scrypt_hash pass salt)))
+    |> List.map (fun (user, pass, salt, clear) -> (user, (clear, salt, scrypt_hash pass salt)))
     |> List.to_seq
     |> Hashtbl.of_seq
+
+  let scrypt_verify username pass =
+    let (clearence, salt, hash) = Hashtbl.find creds username in
+    let res = scrypt_hash pass salt in
+    let equal = Cstruct.equal res hash in
+    (equal, clearence)
 
   let token_map =
     let tbl = Hashtbl.create 0 in
