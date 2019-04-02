@@ -1,6 +1,8 @@
 open Lwt
 open Cohttp
+open Cohttp_lwt
 open Cohttp_mirage
+open Lwt.Infix
 open Capability_t
 
 module Auth (CON : Conduit_mirage.S) = struct
@@ -55,10 +57,12 @@ module Auth (CON : Conduit_mirage.S) = struct
     (equal, clearence)
 
   let token_map =
-    let tbl = Hashtbl.create 0 in
-    Hashtbl.add tbl "4a183696-c4cc-48fe-90b9-831147ec12a2" `Unclassified;
-    Hashtbl.add tbl "fefb7751-7893-435e-82fd-25f0becb3c64" `TopSecret;
-    tbl
+    Hashtbl.create 0
+
+  let add_token clearence =
+    let uuid = Uuidm.(`V4) |> Uuidm.create |> Uuidm.to_string in
+    Hashtbl.add token_map uuid clearence;
+    uuid
 
   let unauthorized_login =
     let headers = Header.init_with "www-authenticate" "Bearer realm=\"proxy.local\"" in
@@ -77,11 +81,24 @@ module Auth (CON : Conduit_mirage.S) = struct
       check_token content
     | _ -> unauthorized_login ()
 
+  let handle_login body =
+    Body.to_string body >>= fun body ->
+    let (correct, clearence) = match String.split_on_char ':' body with
+      | username :: password :: [] -> scrypt_verify username password
+      | _ -> (false, `Unclassified)
+    in
+    match correct with
+    | false -> unauthorized_login ()
+    | true -> let uuid = add_token clearence in
+      let headers = Header.init_with "capabilities" (Capability_j.string_of_capability clearence) in
+      let cookie = ("bearer", uuid) |> Cookie.Set_cookie_hdr.make ~path: "/" ~domain: "proxy.local" ~http_only: true |> Cookie.Set_cookie_hdr.serialize in
+      let headers = Header.add_list headers [cookie] in
+      S.respond ~status: `OK ~headers ~body: `Empty ()
+
   let handle path meth headers body conduit =
     match Header.get_authorization headers with
     | Some `Other token -> handle_token token
-    | Some `Basic _ | None -> let headers = Header.init_with "www-authenticate" "Bearer realm=\"proxy.local\"" in
-      S.respond ~headers ~status: `Unauthorized ~body: `Empty ()
+    | Some `Basic _ | None -> handle_login body
 
   let start conduit =
     let callback _conn req body =

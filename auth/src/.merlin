@@ -6,4 +6,4 @@ B _build/*
 B _build
 B _build/src
 
-PKG lwt lwt.unix cohttp cohttp-mirage mirage cohttp-lwt argon2 scrypt-kdf
+PKG lwt lwt.unix cohttp cohttp-mirage mirage cohttp-lwt argon2 scrypt-kdf uuidm
