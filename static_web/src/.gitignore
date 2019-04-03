@@ -1,0 +1,11 @@
+.mirage.config
+Makefile
+Makefile.solo5-hvt
+_build-solo5-hvt
+_build
+key_gen.ml
+main.ml
+mirage-unikernel-static-hvt.opam
+myocamlbuild.ml
+solo5-hvt
+static.hvt
