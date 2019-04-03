@@ -25,7 +25,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     add_entry "proxy.local" "10.0.0.2" tbl;
     add_entry "auth.local" "10.0.0.3" tbl;
     add_entry "static.local" "10.0.0.4" tbl;
-    add_entry "vmmd.local" "10.0.0.5" tbl;
+    add_entry "vmmd.local" "129.242.181.244" tbl;
     tbl
 
   let static_resolver table = Resolver_mirage.static table
