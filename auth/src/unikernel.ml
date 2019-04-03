@@ -59,7 +59,9 @@ module Auth (CON : Conduit_mirage.S) = struct
   *)
 
   let token_map =
-    Hashtbl.create 0
+    let tbl = Hashtbl.create 1 in
+    Hashtbl.add tbl "kake" `TopSecret;
+    tbl
 
   let add_token clearence =
     let uuid = Uuidm.(`V4) |> Uuidm.create |> Uuidm.to_string in
