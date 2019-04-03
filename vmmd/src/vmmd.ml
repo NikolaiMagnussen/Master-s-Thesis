@@ -75,6 +75,7 @@ let new_tap br =
   in
   let tap = free_tap 0 in
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "tuntap" % "add" % tap % "mode" % "tap") >|> fun () ->
+  Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % "dev" % tap % "up") >|> fun () ->
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % tap % "master" % br) >|> fun () ->
   Ok tap
 
@@ -83,7 +84,7 @@ let spawn_level kernel level =
   new_tap "br0" >|> fun tap ->
   let hvt = Fpath.to_string unikernel.hvt in
   let path = Fpath.to_string unikernel.path in
-  let pid = Unix.create_process hvt [|"--net"; tap; path|] Unix.stdin Unix.stdout Unix.stderr in
+  let pid = Unix.create_process hvt [|hvt; "--net="^tap; path|] Unix.stdin Unix.stdout Unix.stderr in
   add_running kernel level pid >|> fun uuid ->
   Ok uuid
 
@@ -140,14 +141,19 @@ let delete_unikernel = delete "/:name" begin fun req ->
   end
 
 let list_unikernels = get "/" begin fun _req ->
-    let transform = fun (_name, {name; path; hvt; default}) ->
+    let transform_unikernel = fun (_name, {name; path; hvt; default}) ->
       let path = Fpath.to_string path in
       let hvt = Fpath.to_string hvt in
-      Printf.sprintf "name: %s, path: %s, hvt: %s, default: %s" name path hvt default
+      Printf.sprintf "[UNIKERNEL] name: %s, path: %s, hvt: %s, default: %s\n" name path hvt default
     in
-    let str_seq = Seq.map transform (Hashtbl.to_seq unikernels) in
-    let unikernel_str = Seq.fold_left (^) "" str_seq in
-    `String unikernel_str |> respond'
+    let transform_running = fun (_id, {name; pid; level; id}) ->
+      Printf.sprintf "[RUNNING] id: %s, name: %s, pid: %d, level: %s\n" id name pid level
+    in
+    let unikernel_seq = Seq.map transform_unikernel (Hashtbl.to_seq unikernels) in
+    let running_seq = Seq.map transform_running (Hashtbl.to_seq running) in
+    let unikernel_str = Seq.fold_left (^) "" unikernel_seq in
+    let running_str = Seq.fold_left (^) "" running_seq in
+    `String (unikernel_str ^ running_str) |> respond'
   end
 
 let start_unikernel = get "/start/:name" begin fun req ->

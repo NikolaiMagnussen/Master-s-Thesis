@@ -5,6 +5,7 @@ B /home/kongen/.opam/4.07.0/lib/base
 B /home/kongen/.opam/4.07.0/lib/base/caml
 B /home/kongen/.opam/4.07.0/lib/base/shadow_stdlib
 B /home/kongen/.opam/4.07.0/lib/base64
+B /home/kongen/.opam/4.07.0/lib/bigarray-compat
 B /home/kongen/.opam/4.07.0/lib/bos
 B /home/kongen/.opam/4.07.0/lib/bytes
 B /home/kongen/.opam/4.07.0/lib/cmdliner
@@ -31,6 +32,7 @@ B /home/kongen/.opam/4.07.0/lib/lwt
 B /home/kongen/.opam/4.07.0/lib/lwt/unix
 B /home/kongen/.opam/4.07.0/lib/macaddr
 B /home/kongen/.opam/4.07.0/lib/magic-mime
+B /home/kongen/.opam/4.07.0/lib/mmap
 B /home/kongen/.opam/4.07.0/lib/nocrypto
 B /home/kongen/.opam/4.07.0/lib/ocaml
 B /home/kongen/.opam/4.07.0/lib/ocaml/threads
@@ -48,6 +50,7 @@ B /home/kongen/.opam/4.07.0/lib/rresult
 B /home/kongen/.opam/4.07.0/lib/seq
 B /home/kongen/.opam/4.07.0/lib/sexplib
 B /home/kongen/.opam/4.07.0/lib/sexplib0
+B /home/kongen/.opam/4.07.0/lib/stdlib-shims
 B /home/kongen/.opam/4.07.0/lib/stringext
 B /home/kongen/.opam/4.07.0/lib/tls
 B /home/kongen/.opam/4.07.0/lib/uchar
@@ -58,13 +61,14 @@ B /home/kongen/.opam/4.07.0/lib/uuidm
 B /home/kongen/.opam/4.07.0/lib/uutf
 B /home/kongen/.opam/4.07.0/lib/x509
 B /home/kongen/.opam/4.07.0/lib/zarith
-B _build/default/.vmmd.eobjs
+B _build/default/.vmmd.eobjs/byte
 S /home/kongen/.opam/4.07.0/lib/asn1-combinators
 S /home/kongen/.opam/4.07.0/lib/astring
 S /home/kongen/.opam/4.07.0/lib/base
 S /home/kongen/.opam/4.07.0/lib/base/caml
 S /home/kongen/.opam/4.07.0/lib/base/shadow_stdlib
 S /home/kongen/.opam/4.07.0/lib/base64
+S /home/kongen/.opam/4.07.0/lib/bigarray-compat
 S /home/kongen/.opam/4.07.0/lib/bos
 S /home/kongen/.opam/4.07.0/lib/bytes
 S /home/kongen/.opam/4.07.0/lib/cmdliner
@@ -91,6 +95,7 @@ S /home/kongen/.opam/4.07.0/lib/lwt
 S /home/kongen/.opam/4.07.0/lib/lwt/unix
 S /home/kongen/.opam/4.07.0/lib/macaddr
 S /home/kongen/.opam/4.07.0/lib/magic-mime
+S /home/kongen/.opam/4.07.0/lib/mmap
 S /home/kongen/.opam/4.07.0/lib/nocrypto
 S /home/kongen/.opam/4.07.0/lib/ocaml
 S /home/kongen/.opam/4.07.0/lib/ocaml/threads
@@ -108,6 +113,7 @@ S /home/kongen/.opam/4.07.0/lib/rresult
 S /home/kongen/.opam/4.07.0/lib/seq
 S /home/kongen/.opam/4.07.0/lib/sexplib
 S /home/kongen/.opam/4.07.0/lib/sexplib0
+S /home/kongen/.opam/4.07.0/lib/stdlib-shims
 S /home/kongen/.opam/4.07.0/lib/stringext
 S /home/kongen/.opam/4.07.0/lib/tls
 S /home/kongen/.opam/4.07.0/lib/uchar
