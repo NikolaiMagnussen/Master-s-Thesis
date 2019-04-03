@@ -25,6 +25,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     add_entry "proxy.local" "10.0.0.2" tbl;
     add_entry "auth.local" "10.0.0.3" tbl;
     add_entry "static.local" "10.0.0.4" tbl;
+    add_entry "vmmd.local" "10.0.0.5" tbl;
     tbl
 
   let static_resolver table = Resolver_mirage.static table
@@ -99,6 +100,12 @@ module Proxy (CON : Conduit_mirage.S) = struct
     let status = Response.status resp in
     S.respond ~status ~body ()
 
+  let wait_and_forward (resp, body) =
+    let status = Response.status resp in
+    match status with
+    | `OK -> S.respond ~status ~body ()
+    | _ -> S.respond ~status ~body ()
+
   let handle path meth headers body conduit =
     let ctx = ctx conduit in
     get_capabilities headers ctx >>= fun cap ->
@@ -109,7 +116,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     | (`GET, "/robin", _) -> S.respond_string ~status: `OK ~body: (get_round_robin_table ()) ()
     | (`GET, _, Some host) -> Client.get ~ctx (build_uri host path) >>= forward_response
     | (`POST, _, Some host) -> Client.post ~ctx ~body (build_uri host path) >>= forward_response
-    | _ -> S.respond ~status: `Not_found ~body: `Empty ()
+    | _ -> Client.get ~ctx (build_uri "vmmd.local" ("start/" ^ path ^ Capability_j.string_of_capability cap)) >>= wait_and_forward
 
   let start conduit =
     let callback _conn req body =
