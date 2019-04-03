@@ -32,6 +32,7 @@ module Auth (CON : Conduit_mirage.S) = struct
      | Error _e -> (false, clearence)
   *)
 
+  (*
   let scrypt_hash pass salt =
     let password = Cstruct.of_string pass in
     let salt = Cstruct.of_string salt in
@@ -55,6 +56,7 @@ module Auth (CON : Conduit_mirage.S) = struct
     let res = scrypt_hash pass salt in
     let equal = Cstruct.equal res hash in
     (equal, clearence)
+  *)
 
   let token_map =
     Hashtbl.create 0
@@ -81,6 +83,7 @@ module Auth (CON : Conduit_mirage.S) = struct
       check_token content
     | _ -> unauthorized_login ()
 
+  (*
   let handle_login body =
     Body.to_string body >>= fun body ->
     let (correct, clearence) = match String.split_on_char ':' body with
@@ -96,11 +99,12 @@ module Auth (CON : Conduit_mirage.S) = struct
                    |> Cookie.Set_cookie_hdr.serialize in
       let headers = Header.add_list headers [cookie] in
       S.respond ~status: `OK ~headers ~body: `Empty ()
+    *)
 
   let handle path meth headers body conduit =
     match Header.get_authorization headers with
     | Some `Other token -> handle_token token
-    | Some `Basic _ | None -> handle_login body
+    | Some `Basic _ | None -> unauthorized_login () (*handle_login body*)
 
   let start conduit =
     let callback _conn req body =
