@@ -8,3 +8,7 @@ myocamlbuild.ml
 auth
 main.native
 mirage-unikernel-auth-unix.opam
+Makefile.solo5-hvt
+_build-solo5-hvt
+auth.hvt
+solo5-hvt
