@@ -84,7 +84,9 @@ let spawn_level kernel level =
   new_tap "br0" >|> fun tap ->
   let hvt = Fpath.to_string unikernel.hvt in
   let path = Fpath.to_string unikernel.path in
-  let pid = Unix.create_process hvt [|hvt; "--net="^tap; path|] Unix.stdin Unix.stdout Unix.stderr in
+  let tap_number = int_of_string (String.sub tap 3 ((String.length tap) - 3)) in
+  let ip_addr = Printf.sprintf "10.0.0.%d/24" (tap_number + 2) in
+  let pid = Unix.create_process hvt [|hvt; "--net="^tap; path; "--ipv4="^ip_addr|] Unix.stdin Unix.stdout Unix.stderr in
   add_running kernel level pid >|> fun uuid ->
   Ok uuid
 
@@ -97,6 +99,7 @@ let stop uuid =
     Hashtbl.find_opt running uuid >>= fun unikernel ->
     let pid = unikernel.pid in
     Unix.kill pid Sys.sigterm;
+    Hashtbl.remove running uuid;
     return ()
   )
 
