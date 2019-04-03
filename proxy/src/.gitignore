@@ -8,3 +8,7 @@ myocamlbuild.ml
 proxy
 main.native
 mirage-unikernel-proxy-unix.opam
+Makefile.solo5-hvt
+_build-solo5-hvt
+proxy.hvt
+solo5-hvt
