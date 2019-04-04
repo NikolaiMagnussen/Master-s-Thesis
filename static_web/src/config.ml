@@ -8,9 +8,13 @@ let capability =
   let doc = Key.Arg.info ~doc:"What capability this unikernel has." ["capability"] in
   Key.(create "capability" Arg.(opt string "<Unclassified>" doc))
 
+let interactive =
+  let doc = Key.Arg.info ~doc:"If the application is launched interactively." ["interactive"] in
+  Key.(create "interactive" Arg.(opt bool false doc))
+
 let main =
   foreign
-    ~keys:[Key.abstract port; Key.abstract capability]
+    ~keys:[Key.abstract port; Key.abstract capability; Key.abstract interactive]
     "Unikernel.Static" (conduit @-> job)
 
 let () =

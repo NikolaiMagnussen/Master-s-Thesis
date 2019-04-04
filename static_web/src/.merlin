@@ -1,5 +1,9 @@
+S .
 S handlers
 
 B _build/*
+B _build
+B _build/src
+
 
 PKG lwt lwt.mirage mirage cohttp cohttp-mirage conduit_mirage
