@@ -75,8 +75,8 @@ let new_tap br =
   in
   let tap = free_tap 0 in
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "tuntap" % "add" % tap % "mode" % "tap") >|> fun () ->
-  Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % "dev" % tap % "up") >|> fun () ->
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % tap % "master" % br) >|> fun () ->
+  Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % "dev" % tap % "up") >|> fun () ->
   Ok tap
 
 let spawn_level kernel level =
@@ -86,7 +86,7 @@ let spawn_level kernel level =
   let path = Fpath.to_string unikernel.path in
   let tap_number = int_of_string (String.sub tap 3 ((String.length tap) - 3)) in
   let ip_addr = Printf.sprintf "10.0.0.%d/24" (tap_number + 2) in
-  let pid = Unix.create_process hvt [|hvt; "--net="^tap; path; "--ipv4="^ip_addr|] Unix.stdin Unix.stdout Unix.stderr in
+  let pid = Unix.create_process hvt [|hvt; "--net="^tap; path; "--ipv4="^ip_addr; "--capability="^level|] Unix.stdin Unix.stdout Unix.stderr in
   add_running kernel level pid >|> fun uuid ->
   Ok uuid
 
