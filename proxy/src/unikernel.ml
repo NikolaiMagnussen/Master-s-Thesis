@@ -100,11 +100,14 @@ module Proxy (CON : Conduit_mirage.S) = struct
     let status = Response.status resp in
     S.respond ~status ~body ()
 
-  let wait_and_forward (resp, body) =
-    let status = Response.status resp in
-    match status with
-    | `OK -> S.respond ~status ~body ()
-    | _ -> S.respond ~status ~body ()
+  let wait_and_forward (resp, body) ctx path cap round_robin =
+    let rec get_cap_host_until_registered () =
+      match get_cap_host cap round_robin with
+      | Some host -> host
+      | None -> get_cap_host_until_registered ()
+    in
+    let host = get_cap_host_until_registered () in
+    Client.get ~ctx (build_uri host path) >>= forward_response
 
   let handle path meth headers body conduit =
     let ctx = ctx conduit in
@@ -116,7 +119,8 @@ module Proxy (CON : Conduit_mirage.S) = struct
     | (`GET, "/robin", _) -> S.respond_string ~status: `OK ~body: (get_round_robin_table ()) ()
     | (`GET, _, Some host) -> Client.get ~ctx (build_uri host path) >>= forward_response
     | (`POST, _, Some host) -> Client.post ~ctx ~body (build_uri host path) >>= forward_response
-    | _ -> Client.get ~ctx (build_uri "vmmd.local" ("start/" ^ path ^ Capability_j.string_of_capability cap)) >>= wait_and_forward
+    | _ -> Client.get ~ctx (build_uri "vmmd.local" ("/start" ^ path ^ "/" ^ Capability_j.string_of_capability cap)) >>=
+      fun res -> wait_and_forward res ctx path cap round_robin
 
   let start conduit =
     let callback _conn req body =
