@@ -99,10 +99,14 @@ let stop uuid =
     Hashtbl.find_opt running uuid >>= fun unikernel ->
     let pid = unikernel.pid in
     Unix.kill pid Sys.sigterm;
-    let (_, status) = Unix.waitpid [Unix.WNOHANG] pid in
-    match status with
-    | Unix.WSIGNALED _ -> Hashtbl.remove running uuid; return ()
-    | _ -> None
+    let (_, status) = Unix.waitpid [] pid in
+    let msg = match status with
+      | Unix.WEXITED s -> Printf.sprintf "WEXITED(%d)" s
+      | Unix.WSIGNALED s -> Printf.sprintf "WSIGNALED(%d)" s
+      | Unix.WSTOPPED s -> Printf.sprintf "WSTOPPED(%d)" s
+    in
+    Hashtbl.remove running uuid;
+    return msg
   )
 
 (*
@@ -182,11 +186,11 @@ let start_unikernel_level = get "/start/:name/:level" begin fun req ->
 
 let stop_unikernel = get "/stop/:id" begin fun req ->
     let id = param req "id" in
-    let code = match stop id with
-      | None -> `Not_found
-      | Some _ -> `OK
+    let (body, code) = match stop id with
+      | None -> ("was not properly killed", `Not_found)
+      | Some b -> (b, `OK)
     in
-    `String ("stop unikernel " ^ id) |> respond' ~code
+    `String ("stop unikernel " ^ id ^ " with text: " ^ body) |> respond' ~code
   end
 
 
