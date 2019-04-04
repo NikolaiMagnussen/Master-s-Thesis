@@ -88,7 +88,7 @@ let spawn_level kernel level =
   let ip_addr = Printf.sprintf "10.0.0.%d/24" (tap_number + 2) in
   let pid = Unix.create_process hvt [|hvt; "--net="^tap; path; "--ipv4="^ip_addr; "--capability="^level|] Unix.stdin Unix.stdout Unix.stderr in
   add_running kernel level pid >|> fun uuid ->
-  Ok uuid
+  Ok (uuid, ip_addr, level)
 
 let spawn kernel =
   let unikernel = Hashtbl.find unikernels kernel in
@@ -165,23 +165,30 @@ let list_unikernels = get "/" begin fun _req ->
     `String (unikernel_str ^ running_str) |> respond'
   end
 
+(*
+  Ok (uuid, ip_addr, level)
+ *)
 let start_unikernel = get "/start/:name" begin fun req ->
     let name = param req "name" in
-    let code = match spawn name with
-      | Error _ -> `Not_found
-      | Ok _ -> `OK
-    in
-    `String ("start unikernel " ^ name ^ " with default level") |> respond' ~code
+    let (code, body) = match spawn name with
+      | Error _ -> (`Not_found, `String "")
+      | Ok (uuid, ip_addr, level) ->
+        let body = Printf.sprintf "{\"uuid\": \"%s\", \"ip_addr\": \"%s\", \"level\": \"%s\"}" uuid ip_addr level 
+                   |> Ezjsonm.from_string
+        in (`OK, `Json body)
+    in respond' ~code body
   end
 
 let start_unikernel_level = get "/start/:name/:level" begin fun req ->
     let name = param req "name" in
     let level = param req "level" in
-    let code = match spawn_level name level with
-      | Error _ -> `Not_found
-      | Ok _ -> `OK
-    in
-    `String ("start unikernel " ^ name ^ " with level " ^ level) |> respond' ~code
+    let (code, body) = match spawn_level name level with
+      | Error _ -> (`Not_found, `String "")
+      | Ok (uuid, ip_addr, level) ->
+        let body = Printf.sprintf "{\"uuid\": \"%s\", \"ip_addr\": \"%s\", \"level\": \"%s\"}" uuid ip_addr level 
+                   |> Ezjsonm.from_string
+        in (`OK, `Json body)
+    in respond' ~code body
   end
 
 let stop_unikernel = get "/stop/:id" begin fun req ->
