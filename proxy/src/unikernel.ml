@@ -100,6 +100,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     let status = Response.status resp in
     S.respond ~status ~body ()
 
+  (* THIS SHOULD BE FIXED TO RECEIVE THE BODY, EXTRACT DATA AND UPDATE ROUTING TABLE *)
   let wait_and_forward (resp, body) ctx path cap round_robin =
     let rec get_cap_host_until_registered () =
       match get_cap_host cap round_robin with
