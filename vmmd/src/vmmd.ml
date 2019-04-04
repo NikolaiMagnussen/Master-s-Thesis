@@ -99,8 +99,10 @@ let stop uuid =
     Hashtbl.find_opt running uuid >>= fun unikernel ->
     let pid = unikernel.pid in
     Unix.kill pid Sys.sigterm;
-    Hashtbl.remove running uuid;
-    return ()
+    let (_, status) = Unix.waitpid [Unix.WNOHANG] pid in
+    match status with
+    | Unix.WSIGNALED _ -> Hashtbl.remove running uuid; return ()
+    | _ -> None
   )
 
 (*
