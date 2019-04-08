@@ -116,7 +116,6 @@ module Proxy (CON : Conduit_mirage.S) = struct
     let status = Response.status resp in
     S.respond ~status ~body ()
 
-  (* THIS SHOULD BE FIXED TO RECEIVE THE BODY, EXTRACT DATA AND UPDATE ROUTING TABLE *)
   let wait_and_forward (resp, body) ctx path cap round_robin =
     Body.to_string body >>= fun js -> (
       let json = Ezjsonm.from_string js in
