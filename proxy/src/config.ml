@@ -14,6 +14,7 @@ let () =
     package "uri";
     package "biniou";
     package "yojson";
+    package "ezjsonm";
     package "atdgen";
     package "mirage-conduit";
     package "cohttp-mirage";

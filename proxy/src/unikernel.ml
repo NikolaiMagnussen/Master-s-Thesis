@@ -1,5 +1,5 @@
 open Lwt
-open Cohttp
+open Cohttp_lwt
 open Cohttp_mirage
 open Capability_t
 
@@ -9,6 +9,16 @@ module Proxy (CON : Conduit_mirage.S) = struct
   let add_entry (host:string) ip_str table =
     let ip = Ipaddr.of_string_exn ip_str in
     Hashtbl.add table host (fun ~(port:int) -> (`TCP (ip, port) : Conduit.endp))
+
+  let text_table =
+    let tbl = Hashtbl.create 6 in
+    Hashtbl.add tbl "None" `None;
+    Hashtbl.add tbl "Unclassified" `Unclassified;
+    Hashtbl.add tbl "Restricted" `Restricted;
+    Hashtbl.add tbl "Confidential" `Confidential;
+    Hashtbl.add tbl "Secret" `Secret;
+    Hashtbl.add tbl "TopSecret" `TopSecret;
+    tbl
 
   let round_robin =
     let tbl = Hashtbl.create 6 in
@@ -28,6 +38,12 @@ module Proxy (CON : Conduit_mirage.S) = struct
     add_entry "vmmd.local" "129.242.181.244" tbl;
     tbl
 
+  let dynamic_table =
+    Hashtbl.create 1
+
+  let add_dynamic uuid host =
+    Hashtbl.add dynamic_table uuid host
+
   let static_resolver table = Resolver_mirage.static table
   let ctx conduit = Cohttp_mirage.Client.ctx (static_resolver route_table) conduit
 
@@ -38,7 +54,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     let uri = build_uri "auth.local" "/" in
     Client.get ~ctx uri ~headers >>= fun (resp, _body) ->
     let headers = Response.headers resp in
-    let cap = match Header.get headers "capabilities" with
+    let cap = match Cohttp.Header.get headers "capabilities" with
       | Some cap -> Capability_j.capability_of_string cap
       | None -> `None 
     in Lwt.return cap
@@ -58,8 +74,8 @@ module Proxy (CON : Conduit_mirage.S) = struct
     new_host
 
   let register_service headers =
-    let ip = Header.get headers "ip-addr" in
-    let cap = Header.get headers "capability" in
+    let ip = Cohttp.Header.get headers "ip-addr" in
+    let cap = Cohttp.Header.get headers "capability" in
     match (ip, cap) with
     | (Some ip, Some cap) ->
       let capability = Capability_j.capability_of_string cap in
@@ -102,13 +118,19 @@ module Proxy (CON : Conduit_mirage.S) = struct
 
   (* THIS SHOULD BE FIXED TO RECEIVE THE BODY, EXTRACT DATA AND UPDATE ROUTING TABLE *)
   let wait_and_forward (resp, body) ctx path cap round_robin =
-    let rec get_cap_host_until_registered () =
-      match get_cap_host cap round_robin with
-      | Some host -> host
-      | None -> get_cap_host_until_registered ()
-    in
-    let host = get_cap_host_until_registered () in
-    Client.get ~ctx (build_uri host path) >>= forward_response
+    Body.to_string body >>= fun js -> (
+      let json = Ezjsonm.from_string js in
+      let uuid = Ezjsonm.(get_string (find json ["uuid"])) in
+      let ip_addr = Ezjsonm.(get_string (find json ["ip_addr"])) in
+      let level = Ezjsonm.(get_string (find json ["level"])) in
+      let level = Hashtbl.find text_table level in
+      let new_host = add_cap_entry level in
+      add_entry new_host Ipaddr.(of_string_exn ip_addr |> to_string) route_table;
+      add_dynamic uuid new_host;
+      match get_cap_host level round_robin with
+      | Some host ->
+        Client.get ~ctx (build_uri host path) >>= forward_response
+      | None -> S.respond_not_found ())
 
   let handle path meth headers body conduit =
     let ctx = ctx conduit in
