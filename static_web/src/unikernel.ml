@@ -27,14 +27,14 @@ module Static (CON : Conduit_mirage.S) = struct
       *)
 
   let start conduit =
-    if Key_gen.interactive () then
-      Handlers.register_to_loadbalancer conduit
-    else
-      Lwt.return_unit
-      >>= fun () ->
-      let callback _conn _req _body =
-        S.respond_string ~status: `OK ~body: "Some static string" ()
-      in
-      let spec = S.make ~callback () in
-      CON.listen conduit (`TCP (Key_gen.port ())) (S.listen spec)
+    (if Key_gen.interactive () then
+       Handlers.register_to_loadbalancer conduit
+     else
+       Lwt.return_unit)
+    >>= fun () ->
+    let callback _conn _req _body =
+      S.respond_string ~status: `OK ~body: "Some static string" ()
+    in
+    let spec = S.make ~callback () in
+    CON.listen conduit (`TCP (Key_gen.port ())) (S.listen spec)
 end
