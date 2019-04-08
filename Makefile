@@ -24,7 +24,7 @@ tap%: br0
 deploy: /dev/kvm tap0 tap1 tap2 build
 	proxy/src/solo5-hvt --net=tap0 proxy/src/proxy.hvt --ipv4=10.0.0.2/24 & disown
 	auth/src/solo5-hvt --net=tap1 auth/src/auth.hvt --ipv4=10.0.0.3/24 & disown
-	static_web/src/solo5-hvt --net=tap2 static_web/src/static.hvt --ipv4=10.0.0.4/24 & disown
+	static_web/src/solo5-hvt --net=tap2 static_web/src/static.hvt --ipv4=10.0.0.4/24 --interactive=true & disown
 	sudo vmmd/src/_build/default/vmmd.exe -v -d -i 129.242.181.244 -p 8000 2>&1 & disown
 
 destroy:
