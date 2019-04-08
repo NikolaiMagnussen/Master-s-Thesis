@@ -112,30 +112,42 @@ module Proxy (CON : Conduit_mirage.S) = struct
     else
       None
 
+  (*
+  let kill_unikernel uuid level ctx =
+    Client.get ~ctx (build_uri "vmmd.local" ("/stop/" ^ uuid)) >>= fun _ ->
+    let host = Hashtbl.find dynamic_table uuid in
+    Hashtbl.remove dynamic_table uuid;
+    let (n, i, l) = Hashtbl.find round_robin level in
+    let l = List.filter (fun x -> String.equal x host |> not) l in
+    Hashtbl.replace round_robin level (n, i, l);
+    Hashtbl.remove route_table host;
+    Lwt.return_unit
+  *)
+
   let forward_response (resp, body) =
     let status = Response.status resp in
     S.respond ~status ~body ()
 
   let wait_and_forward (resp, body) ctx path cap round_robin =
-    Body.to_string body >>= fun js -> (
-      let json = Ezjsonm.from_string js in
-      let uuid = Ezjsonm.(get_string (find json ["uuid"])) in
-      let ip_addr = Ezjsonm.(get_string (find json ["ip_addr"])) in
-      let level = Ezjsonm.(get_string (find json ["level"])) |> Hashtbl.find text_table in
-      let new_host = add_cap_entry level in
-      add_entry new_host Ipaddr.(of_string_exn ip_addr |> to_string) route_table;
-      add_dynamic uuid new_host;
-      match get_cap_host level round_robin with
-      | Some host -> (
-          let rec req host =
-            Client.get ~ctx (build_uri host path) >>= fun (resp, body) ->
-            match Cohttp.(Response.status resp |> Code.code_of_status |> Code.is_success) with
-            | true -> forward_response (resp, body)
-            | false -> req host
-          in
-          req host
-        )
-      | None -> S.respond_not_found ())
+    Body.to_string body >>= fun js ->
+    let json = Ezjsonm.from_string js in
+    let uuid = Ezjsonm.(get_string (find json ["uuid"])) in
+    let ip_addr = Ezjsonm.(get_string (find json ["ip_addr"])) in
+    let level = Ezjsonm.(get_string (find json ["level"])) |> Hashtbl.find text_table in
+    let new_host = add_cap_entry level in
+    add_entry new_host Ipaddr.(of_string_exn ip_addr |> to_string) route_table;
+    add_dynamic uuid new_host;
+    match get_cap_host level round_robin with
+    | Some host ->
+      let rec req host =
+        Client.get ~ctx (build_uri host path) >>= fun (resp, body) ->
+        match Cohttp.(Response.status resp |> Code.code_of_status |> Code.is_success) with
+        | true -> forward_response (resp, body)
+        | false -> req host
+      in
+      req host
+    | None ->
+      S.respond_not_found ()
 
   let handle path meth headers body conduit =
     let ctx = ctx conduit in
