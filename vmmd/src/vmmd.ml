@@ -32,6 +32,19 @@ let running = Hashtbl.create 1
 (* Redefine >>= for Rresult *)
 let (>|>) a b = Rresult.(a >>= b)
 
+let level_table =
+  let tbl = Hashtbl.create 0 in
+  let a = ("<\"TopSecret\">", "TopSecret") in
+  let b = ("<\"Secret\">", "Secret") in
+  let c = ("<\"Confidential\">", "Confidential") in
+  let d = ("<\"Unclassified\">", "Unclassified") in
+  let s = List.to_seq [a; b; c; d] in
+  Hashtbl.add_seq tbl s;
+  tbl
+
+let transform_level level =
+  Hashtbl.find level_table level
+
 let add_running name level pid =
   if Hashtbl.mem unikernels name then
     let id = Uuidm.(to_string (create `V4)) in
@@ -181,7 +194,7 @@ let start_unikernel = get "/start/:name" begin fun req ->
 
 let start_unikernel_level = get "/start/:name/:level" begin fun req ->
     let name = param req "name" in
-    let level = param req "level" in
+    let level = "level" |> param req |> transform_level in
     let (code, body) = match spawn_level name level with
       | Error _ -> (`Not_found, `String "")
       | Ok (uuid, ip_addr, level) ->
