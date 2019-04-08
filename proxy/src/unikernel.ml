@@ -122,14 +122,20 @@ module Proxy (CON : Conduit_mirage.S) = struct
       let json = Ezjsonm.from_string js in
       let uuid = Ezjsonm.(get_string (find json ["uuid"])) in
       let ip_addr = Ezjsonm.(get_string (find json ["ip_addr"])) in
-      let level = Ezjsonm.(get_string (find json ["level"])) in
-      let level = Hashtbl.find text_table level in
+      let level = Ezjsonm.(get_string (find json ["level"])) |> Hashtbl.find text_table in
       let new_host = add_cap_entry level in
       add_entry new_host Ipaddr.(of_string_exn ip_addr |> to_string) route_table;
       add_dynamic uuid new_host;
       match get_cap_host level round_robin with
-      | Some host ->
-        Client.get ~ctx (build_uri host path) >>= forward_response
+      | Some host -> (
+          let rec req host =
+            Client.get ~ctx (build_uri host path) >>= fun (resp, body) ->
+            match Cohttp.(Response.status resp |> Code.code_of_status |> Code.is_success) with
+            | true -> forward_response (resp, body)
+            | false -> req host
+          in
+          req host
+        )
       | None -> S.respond_not_found ())
 
   let handle path meth headers body conduit =
