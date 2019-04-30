@@ -35,7 +35,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     add_entry "proxy.local" "10.0.0.2" tbl;
     add_entry "auth.local" "10.0.0.3" tbl;
     add_entry "static.local" "10.0.0.4" tbl;
-    add_entry "vmmd.local" "129.242.181.244" tbl;
+    add_entry "vmmd.local" "129.242.181.84" tbl;
     tbl
 
   let dynamic_table =
@@ -140,10 +140,13 @@ module Proxy (CON : Conduit_mirage.S) = struct
     match get_cap_host level round_robin with
     | Some host ->
       let rec req host =
-        Client.get ~ctx (build_uri host path) >>= fun (resp, body) ->
-        match Cohttp.(Response.status resp |> Code.code_of_status |> Code.is_success) with
-        | true -> forward_response (resp, body)
-        | false -> req host
+        let submit_req () = Client.get ~ctx (build_uri host path) in
+        let handle_succ (resp, body) =
+          match Cohttp.(Response.status resp |> Code.code_of_status |> Code.is_success) with
+          | true -> forward_response (resp, body)
+          | false -> req host in
+        let handle_fail _ = req host in
+        Lwt.try_bind submit_req handle_succ handle_fail
       in
       req host
     | None ->
