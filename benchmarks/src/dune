@@ -1,0 +1,9 @@
+(executable
+    (name bench_tap)
+    (modules bench_tap)
+    (libraries bos mtime mtime.clock.os owl-base))
+
+(executable
+    (name bench_unikernel)
+    (modules bench_unikernel)
+    (libraries bos mtime mtime.clock.os owl-base))
