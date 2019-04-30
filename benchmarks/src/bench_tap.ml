@@ -39,4 +39,4 @@ let () =
   | Ok l -> let times = List.map Mtime.Span.to_us l |> Array.of_list in
     let mean = Owl_base_stats.mean times in
     let std = Owl_base_stats.std ~mean times in
-    Printf.printf "%d runs:\n\tMean = %fus\n\tStd  = %fus\n" num_times mean std
+    Printf.printf "BENCH TAP %d runs:\n\tMean = %fus\n\tStd  = %fus\n" num_times mean std
