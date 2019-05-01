@@ -6,4 +6,4 @@
 (executable
     (name bench_unikernel)
     (modules bench_unikernel)
-    (libraries bos mtime mtime.clock.os owl-base))
+    (libraries bos mtime mtime.clock.os owl-base curly cohttp-lwt-unix logs fmt logs.fmt fmt.tty))
