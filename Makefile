@@ -49,6 +49,19 @@ deploy: /dev/kvm tap0 tap1 tap2 build
 	static_web/src/solo5-hvt --net=tap2 static_web/src/static.hvt --ipv4=10.0.0.4/24 --interactive=true & disown
 	sudo vmmd/src/_build/default/vmmd.exe -v -d -i 129.242.181.244 -p 8000 2>&1 & disown
 
+deploy_tap_pool: /dev/kvm tap0 tap1 tap2 build
+	proxy/src/solo5-hvt --net=tap0 proxy/src/proxy.hvt --ipv4=10.0.0.2/24 & disown
+	auth/src/solo5-hvt --net=tap1 auth/src/auth.hvt --ipv4=10.0.0.3/24 & disown
+	sudo vmmd/src/_build/default/vmmd.exe -d -i 129.242.181.244 -p 8000 2>&1 & disown
+	sleep 1
+	curl -X POST \
+	  http://localhost:8000/ \
+	  -H 'Authorization: Bearer fefb7751-7893-435e-82fd-25f0becb3c64' \
+	  -H 'Postman-Token: f2f8a9b9-b847-4c96-ad30-b1135850ca38' \
+	  -H 'cache-control: no-cache' \
+	  -d '{"name": "kake", "path": "/home/kongen/sshfs-dev/Master_Thesis/static_web/src/static.hvt", "level": "TopSecret"}'
+	sleep 1
+
 deploy_aot: /dev/kvm tap0 tap1 tap2 build
 	sudo vmmd/src/_build/default/vmmd.exe -v --debug -i 129.242.183.7 -p 8000 & disown
 	sleep 1

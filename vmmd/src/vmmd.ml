@@ -28,6 +28,7 @@ end
 
 let unikernels = Hashtbl.create 1
 let running = Hashtbl.create 1
+let tap_pool = ref []
 
 (* Redefine >>= for Rresult *)
 let (>|>) a b = Rresult.(a >>= b)
@@ -94,9 +95,18 @@ let new_tap br =
   Bos.OS.Cmd.run Bos.Cmd.(v "ip" % "link" % "set" % "dev" % tap % "up") >|> fun () ->
   Ok tap
 
+let new_tap_maybe br =
+  if List.length !tap_pool > 0
+  then
+    let tap = List.hd !tap_pool in
+    tap_pool := List.tl !tap_pool;
+    Ok tap
+  else
+    new_tap br
+
 let spawn_level kernel level =
   let unikernel = Hashtbl.find unikernels kernel in
-  new_tap "br0" >|> fun tap ->
+  new_tap_maybe "br0" >|> fun tap ->
   let hvt = Fpath.to_string unikernel.hvt in
   let path = Fpath.to_string unikernel.path in
   let tap_number = int_of_string (String.sub tap 3 ((String.length tap) - 3)) in
@@ -219,9 +229,29 @@ let stop_unikernel = get "/stop/:id" begin fun req ->
     `String ("stop unikernel " ^ id ^ " with text: " ^ body) |> respond' ~code
   end
 
+let create_tap_pool () = 
+  let rec new_taps num taps =
+    if num == 0
+    then taps
+    else
+      match new_tap "br0" with
+      | Ok tap -> new_taps (num-1) (tap :: taps)
+      | Error _ -> new_taps (num-1) taps
+  in
+  let pool = new_taps 10 [] in
+  tap_pool := pool;
+  ()
 
+let args_create_taps () =
+  let doc = "Use a tap pool instead of spawning them on demand." in
+  let a = ("-d", Arg.Unit create_tap_pool, doc) in
+  let ignore_i = ("-i", Arg.Unit (fun () -> ()), "") in
+  let ignore_p = ("-p", Arg.Unit (fun () -> ()), "") in
+  let usage_msg = "Run the VMMD service. Options available:" in
+  Arg.parse [a; ignore_i; ignore_p] (fun _ -> ()) usage_msg
 
 let () =
+  args_create_taps ();
   App.empty
   |> register_unikernel
   |> update_unikernel
