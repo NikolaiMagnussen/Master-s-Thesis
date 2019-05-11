@@ -35,7 +35,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
     add_entry "proxy.local" "10.0.0.2" tbl;
     add_entry "auth.local" "10.0.0.3" tbl;
     add_entry "static.local" "10.0.0.4" tbl;
-    add_entry "vmmd.local" "129.242.181.84" tbl;
+    add_entry "vmmd.local" "129.242.183.7" tbl;
     tbl
 
   let dynamic_table =
@@ -48,6 +48,7 @@ module Proxy (CON : Conduit_mirage.S) = struct
   let ctx conduit = Cohttp_mirage.Client.ctx (static_resolver route_table) conduit
 
   let build_uri host path =
+    Printf.printf "path to build: %s\n" path;
     Uri.of_string (Printf.sprintf "http://%s:8000%s" host path)
 
   let get_capabilities headers ctx =
@@ -165,7 +166,37 @@ module Proxy (CON : Conduit_mirage.S) = struct
     | _ -> Client.get ~ctx (build_uri "vmmd.local" ("/start" ^ path ^ "/" ^ Capability_j.string_of_capability cap)) >>=
       fun res -> wait_and_forward res ctx path cap round_robin
 
+  let spawn_unikernel ctx path cap =
+    Printf.printf "Spawning unikernel at %s\n" path;
+    Client.get ~ctx (build_uri "vmmd.local" ("/start" ^ path ^ "/" ^ Capability_j.string_of_capability cap)) >>= fun (resp, body) ->
+    Body.to_string body >>= fun js ->
+    Printf.printf "Got body: %s\n" js;
+    let json = Ezjsonm.from_string js in
+    let uuid = Ezjsonm.(get_string (find json ["uuid"])) in
+    let ip_addr = Ezjsonm.(get_string (find json ["ip_addr"])) in
+    let level = Ezjsonm.(get_string (find json ["level"])) |> Hashtbl.find text_table in
+    let new_host = add_cap_entry level in
+    add_entry new_host Ipaddr.(of_string_exn ip_addr |> to_string) route_table;
+    Printf.printf "Spawned a new unikernel\n";
+    add_dynamic uuid new_host |> Lwt.return
+
+  let spawn_unikernels ctx path =
+    let caps = Hashtbl.to_seq_keys round_robin in
+    let spawn = spawn_unikernel ctx path in
+    let collapse_shit _a b =
+      b >>= fun _ ->
+      Lwt.return_unit in
+    Seq.map spawn caps |> Seq.fold_left collapse_shit Lwt.return_unit
+
+
   let start conduit =
+    (if (Key_gen.aot ()) then
+       let ctx = ctx conduit in
+       spawn_unikernels ctx "/kake"
+     else
+       Lwt.return_unit)
+    >>= fun _ ->
+    Printf.printf "Successfully spawned unikernels AOT\n";
     let callback _conn req body =
       let path = req |> Request.uri |> Uri.path in
       let meth = Request.meth req in

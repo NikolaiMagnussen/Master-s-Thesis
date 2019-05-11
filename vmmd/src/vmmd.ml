@@ -36,9 +36,11 @@ let level_table =
   let tbl = Hashtbl.create 0 in
   let a = ("<\"TopSecret\">", "TopSecret") in
   let b = ("<\"Secret\">", "Secret") in
+  let r = ("<\"Restricted\">", "Restricted") in
+  let u = ("<\"None\">", "None") in
   let c = ("<\"Confidential\">", "Confidential") in
   let d = ("<\"Unclassified\">", "Unclassified") in
-  let s = List.to_seq [a; b; c; d] in
+  let s = List.to_seq [a; b; c; d; r; u] in
   Hashtbl.add_seq tbl s;
   tbl
 
@@ -183,6 +185,7 @@ let list_unikernels = get "/" begin fun _req ->
  *)
 let start_unikernel = get "/start/:name" begin fun req ->
     let name = param req "name" in
+    Printf.fprintf stderr "Starting unikernel %s at default level\n" name;
     let (code, body) = match spawn name with
       | Error _ -> (`Not_found, `String "")
       | Ok (uuid, ip_addr, level) ->
@@ -194,14 +197,17 @@ let start_unikernel = get "/start/:name" begin fun req ->
 
 let start_unikernel_level = get "/start/:name/:level" begin fun req ->
     let name = param req "name" in
+    Printf.fprintf stderr "Name to start: %s\n" name;
     let level = "level" |> param req |> transform_level in
+    Printf.fprintf stderr "Level to start at: %s\n" level;
     let (code, body) = match spawn_level name level with
       | Error _ -> (`Not_found, `String "")
       | Ok (uuid, ip_addr, level) ->
         let body = Printf.sprintf "{\"uuid\": \"%s\", \"ip_addr\": \"%s\", \"level\": \"%s\"}" uuid ip_addr level 
                    |> Ezjsonm.from_string
         in (`OK, `Json body)
-    in respond' ~code body
+    in
+    respond' ~code body
   end
 
 let stop_unikernel = get "/stop/:id" begin fun req ->

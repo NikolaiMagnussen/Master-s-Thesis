@@ -1,6 +1,6 @@
 BENCH_NUM = 100
 
-.PHONY: all build_bench run_bench bench_tap bench_unikernel build deploy clean br0 tap%
+.PHONY: all build_bench run_bench bench_tap bench_unikernel build deploy clean br0 tap% no_iptables
 all: build
 
 build: proxy/src/proxy.hvt static_web/src/static.hvt auth/src/auth.hvt vmmd/src/_build/default/vmmd.exe
@@ -27,7 +27,10 @@ auth/src/auth.hvt: auth/src/*.ml
 vmmd/src/_build/default/vmmd.exe: vmmd/src/*.ml
 	cd vmmd/src/ && dune build vmmd.exe
 
-br0: 
+no_iptables: /proc/sys/net/bridge/bridge-nf-call-iptables
+	echo 0 | sudo tee /proc/sys/net/bridge/bridge-nf-call-iptables
+
+br0: no_iptables
 	@ip link | grep ": br0:" || ($(info "Bridge not available ($@) - creating one") sudo ip link add br0 type bridge && sudo ip addr add 10.0.0.1/24 dev br0 && sudo ip link set dev br0 up)
 
 tap%: br0
@@ -45,6 +48,20 @@ deploy: /dev/kvm tap0 tap1 tap2 build
 	auth/src/solo5-hvt --net=tap1 auth/src/auth.hvt --ipv4=10.0.0.3/24 & disown
 	static_web/src/solo5-hvt --net=tap2 static_web/src/static.hvt --ipv4=10.0.0.4/24 --interactive=true & disown
 	sudo vmmd/src/_build/default/vmmd.exe -v -d -i 129.242.181.244 -p 8000 2>&1 & disown
+
+deploy_aot: /dev/kvm tap0 tap1 tap2 build
+	sudo vmmd/src/_build/default/vmmd.exe -v --debug -i 129.242.183.7 -p 8000 & disown
+	sleep 1
+	curl -X POST \
+	  http://localhost:8000/ \
+	  -H 'Authorization: Bearer fefb7751-7893-435e-82fd-25f0becb3c64' \
+	  -H 'Postman-Token: f2f8a9b9-b847-4c96-ad30-b1135850ca38' \
+	  -H 'cache-control: no-cache' \
+	  -d '{"name": "kake", "path": "/home/kongen/sshfs-dev/Master_Thesis/static_web/src/static.hvt", "level": "TopSecret"}'
+	auth/src/solo5-hvt --net=tap1 auth/src/auth.hvt --ipv4=10.0.0.3/24 & disown
+	sleep 1
+	proxy/src/solo5-hvt --net=tap0 proxy/src/proxy.hvt --ipv4=10.0.0.2/24 --aot=true & disown
+
 
 destroy:
 	- sudo pkill solo5-hvt
